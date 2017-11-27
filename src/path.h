@@ -47,7 +47,6 @@ public:
         ptsy.push_back(next_wp1[1]);
         ptsy.push_back(next_wp2[1]);
 
-        //shift car reference angle to 0 degrees
         for (int i = 0; i < ptsx.size(); i++) {
             double shift_x = ptsx[i] - ego.ref_x;
             double shift_y = ptsy[i] - ego.ref_y;
@@ -73,9 +72,9 @@ public:
         for (int i = 1; i <= 50 - previous_path_x.size(); i++) {
 
             if (ego.ref_vel > car_speed) {
-                car_speed += .224;
+                car_speed += .21;
             } else if (ego.ref_vel < car_speed) {
-                car_speed -= .224;
+                car_speed -= .21;
             }
 
             double N = (target_dist / (.02 * car_speed / 2.24));

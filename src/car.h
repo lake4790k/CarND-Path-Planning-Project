@@ -2,6 +2,9 @@
 
 #include <math.h>
 #include <vector>
+#include <iostream>
+
+using namespace std;
 
 class Car {
 public:
@@ -31,7 +34,8 @@ public:
         s += steps * .02 * speed;
     }
 
-    double distance(Car &otherCar) {
+protected:
+    double distance(const Car &otherCar) {
         return otherCar.s - s;
     }
 
@@ -39,7 +43,6 @@ public:
 
 
 class EgoCar : public Car {
-
 public:
     int target_lane;
     double ref_vel;
@@ -47,10 +50,11 @@ public:
     double ref_y;
     double ref_yaw;
 
-    int next_wp;
     int lane_change_wp;
 
-    EgoCar() {}
+    EgoCar() {
+        target_lane = 1;
+    }
 
     void update(double x_, double y_, double speed_, double s_, double d_, double yaw_) {
         x = x_;
@@ -61,7 +65,6 @@ public:
         lane = d / 4;
         yaw = yaw_;
 
-        next_wp = -1;
         ref_vel = 49.5;
 
         ref_x = x;
@@ -69,9 +72,10 @@ public:
         ref_yaw = deg2rad(yaw);
     }
 
-    void plan(vector<Car> &cars, vector<double> &previous_path_x, vector<double> &previous_path_y, vector<double> &maps_x, vector<double> &maps_y, double end_path_s) {
+    void plan(const vector<Car> &cars, vector<double> &previous_path_x, vector<double> &previous_path_y, vector<double> &maps_x, vector<double> &maps_y, double end_path_s) {
         int prev_size = previous_path_x.size();
 
+        int next_wp;
         if (prev_size < 2) {
             next_wp = NextWaypoint(ref_x, ref_y, ref_yaw, maps_x, maps_y);
         } else {
@@ -87,62 +91,58 @@ public:
             speed = (sqrt((ref_x - ref_x_prev) * (ref_x - ref_x_prev) + (ref_y - ref_y_prev) * (ref_y - ref_y_prev)) / .02) * 2.237;
         }
 
+        bool change_lanes = adjustRefVelIfShouldChangeLanes(cars);
+
+        if (change_lanes && ((next_wp - lane_change_wp) % maps_x.size() > 2)) {
+            // TODO change to lane with faster car ahead
+            if (lane > 0) {
+                bool lane_safe = switchToLaneIfSafeZoneEmpty(cars, lane - 1, next_wp);
+                if (lane_safe)
+                    return;
+            }
+            if (lane < 2) {
+                switchToLaneIfSafeZoneEmpty(cars, lane + 1, next_wp);
+            }
+        }
+    }
+
+    bool switchToLaneIfSafeZoneEmpty(const vector<Car> &cars, int checkLane, int next_wp) {
+        for (const Car &car : cars) {
+            if (car.lane == checkLane) {
+                double dist = distance(car);
+                if (dist > -10 && dist < 20) {
+                    return false;
+                }
+            }
+        }
+        cout << "change lanes: " << checkLane << endl;
+        target_lane = checkLane;
+        lane_change_wp = next_wp;
+        return true;
+    }
+
+private:
+
+    bool adjustRefVelIfShouldChangeLanes(const vector<Car> &cars) {
         double closestDist = 100000;
         bool change_lanes = false;
-        for (Car &car : cars) {
+        for (const Car &car : cars) {
             if (car.lane != lane) continue;
 
             double dist = distance(car);
             if (dist > 0 && dist < 30 && dist < closestDist) {
                 closestDist = dist;
-                if (dist < 20) {
+                // TODO only if can't change lanes?
+                if (dist > 20) {
                     ref_vel = car.speed * 2.237;
                 } else {
-                    // TODO only if can't change lanes?
-                    //go slightly slower than the cars speed
                     ref_vel = car.speed * 2.237 - 5;
                 }
                 change_lanes = true;
             }
         }
-
-        target_lane = lane;
-        if (change_lanes && ((next_wp - lane_change_wp) % maps_x.size() > 2)) {
-            bool changed_lanes = false;
-            if (lane != 0 && !changed_lanes) {
-                bool lane_safe = true;
-
-                for (Car &car : cars) {
-                    if (car.lane == lane - 1) {
-                        double dist = distance(car);
-                        if (dist < 20 && dist > -20) {
-                            lane_safe = false;
-                        }
-                    }
-                }
-                if (lane_safe) {
-                    changed_lanes = true;
-                    lane -= 1;
-                    lane_change_wp = next_wp;
-                }
-            }
-            if (lane != 2 && !changed_lanes) {
-                bool lane_safe = true;
-                for (Car &car : cars) {
-                    if (car.lane == lane + 1) {
-                        double dist = distance(car);
-                        if (dist < 20 && dist > -20) {
-                            lane_safe = false;
-                        }
-                    }
-                }
-                if (lane_safe) {
-                    changed_lanes = true;
-                    lane += 1;
-                    lane_change_wp = next_wp;
-                }
-            }
-        }
+        cout << s << " " << d << " " << lane << " | " << closestDist << endl;
+        return change_lanes;
     }
 };
 
