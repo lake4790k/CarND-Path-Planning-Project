@@ -93,7 +93,7 @@ public:
 
         bool change_lanes = adjustRefVelIfShouldChangeLanes(cars);
 
-        if (change_lanes && ((next_wp - lane_change_wp) % maps_x.size() > 2)) {
+        if (change_lanes && ((next_wp - lane_change_wp) % maps_x.size() > 1)) {
             // TODO change to lane with faster car ahead
             if (lane > 0) {
                 bool lane_safe = switchToLaneIfSafeZoneEmpty(cars, lane - 1, next_wp);
@@ -133,10 +133,8 @@ private:
             if (dist > 0 && dist < 30 && dist < closestDist) {
                 closestDist = dist;
                 // TODO only if can't change lanes?
-                if (dist > 20) {
+                if (dist < 20) {
                     ref_vel = car.speed * 2.237;
-                } else {
-                    ref_vel = car.speed * 2.237 - 5;
                 }
                 change_lanes = true;
             }
