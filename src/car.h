@@ -46,7 +46,7 @@ class EgoCar : public Car {
 public:
     int target_lane;
     int lane_change_wp;
-    double ref_vel;
+    double target_speed;
     double ref_x;
     double ref_y;
     double ref_yaw;
@@ -63,7 +63,7 @@ public:
         d = d_;
         yaw = yaw_;
         lane = d / 4;
-        ref_vel = 49.5;
+        target_speed = 49.5;
         ref_x = x;
         ref_y = y;
         ref_yaw = deg2rad(yaw);
@@ -130,7 +130,7 @@ private:
             if (distance > 0 && distance < 30 && distance < closest) {
                 closest = distance;
                 if (distance < 20) {
-                    ref_vel = car.speed * 2.237;
+                    target_speed = car.speed * 2.237;
                 }
                 change_lanes = true;
             }

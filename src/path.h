@@ -70,9 +70,9 @@ public:
         double car_speed = ego.speed;
         for (int i = 1; i <= 50 - previous_path_x.size(); i++) {
 
-            if (ego.ref_vel > car_speed) {
+            if (ego.target_speed > car_speed) {
                 car_speed += .2;
-            } else if (ego.ref_vel < car_speed) {
+            } else if (ego.target_speed < car_speed) {
                 car_speed -= .2;
             }
 
