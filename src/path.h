@@ -34,7 +34,6 @@ public:
             ptsy.push_back(previous_path_y[prev_size - 1]);
         }
 
-        // TODO first offset based on closeness / speed?
         vector<double> next_wp0 = getXY(ego.s + 30, (2 + 4 * ego.target_lane), maps_s, maps_x, maps_y);
         vector<double> next_wp1 = getXY(ego.s + 60, (2 + 4 * ego.target_lane), maps_s, maps_x, maps_y);
         vector<double> next_wp2 = getXY(ego.s + 90, (2 + 4 * ego.target_lane), maps_s, maps_x, maps_y);
@@ -65,20 +64,20 @@ public:
 
         double target_x = 30.0;
         double target_y = s(target_x);
-        double target_dist = sqrt((target_x) * (target_x) + (target_y) * (target_y));
+        double target_dist = sqrt(target_x * target_x + target_y * target_y);
 
         double x_add_on = 0;
         double car_speed = ego.speed;
         for (int i = 1; i <= 50 - previous_path_x.size(); i++) {
 
             if (ego.ref_vel > car_speed) {
-                car_speed += .21;
+                car_speed += .2;
             } else if (ego.ref_vel < car_speed) {
-                car_speed -= .21;
+                car_speed -= .2;
             }
 
-            double N = (target_dist / (.02 * car_speed / 2.24));
-            double x_point = x_add_on + (target_x) / N;
+            double N = target_dist / (.02 * car_speed / 2.237);
+            double x_point = x_add_on + target_x / N;
             double y_point = s(x_point);
 
             x_add_on = x_point;

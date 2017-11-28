@@ -45,12 +45,11 @@ protected:
 class EgoCar : public Car {
 public:
     int target_lane;
+    int lane_change_wp;
     double ref_vel;
     double ref_x;
     double ref_y;
     double ref_yaw;
-
-    int lane_change_wp;
 
     EgoCar() {
         target_lane = 1;
@@ -62,11 +61,9 @@ public:
         speed = speed_;
         s = s_;
         d = d_;
-        lane = d / 4;
         yaw = yaw_;
-
+        lane = d / 4;
         ref_vel = 49.5;
-
         ref_x = x;
         ref_y = y;
         ref_yaw = deg2rad(yaw);
@@ -93,54 +90,53 @@ public:
 
         bool change_lanes = adjustRefVelIfShouldChangeLanes(cars);
 
-        if (change_lanes && ((next_wp - lane_change_wp) % maps_x.size() > 1)) {
-            // TODO change to lane with faster car ahead
-            if (lane > 0) {
-                bool lane_safe = switchToLaneIfSafeZoneEmpty(cars, lane - 1, next_wp);
-                if (lane_safe)
-                    return;
-            }
-            if (lane < 2) {
-                switchToLaneIfSafeZoneEmpty(cars, lane + 1, next_wp);
-            }
+        const int wp_delay = 2;
+        if (change_lanes && ((next_wp - lane_change_wp) % maps_x.size() > wp_delay)) {
+            double slowest = switchToLaneIfSafeZoneEmpty(cars, lane - 1, next_wp, 0);
+            switchToLaneIfSafeZoneEmpty(cars, lane + 1, next_wp, slowest);
         }
     }
 
-    bool switchToLaneIfSafeZoneEmpty(const vector<Car> &cars, int checkLane, int next_wp) {
+    double switchToLaneIfSafeZoneEmpty(const vector<Car> &cars, int checkLane, int next_wp, double slowest_so_far) {
+        if (checkLane < 0 || checkLane > 2) return 0;
+
+        double slowest = numeric_limits<double>::max();
         for (const Car &car : cars) {
             if (car.lane == checkLane) {
-                double dist = distance(car);
-                if (dist > -10 && dist < 20) {
-                    return false;
-                }
+                double distance = distance(car);
+                bool notSafe = distance > -10 && distance < 20;
+                if (notSafe) return 0;
+
+                bool blocks = distance < 60 && car.speed < slowest;
+                if (blocks) slowest = car.speed;
             }
         }
-        cout << "change lanes: " << checkLane << endl;
-        target_lane = checkLane;
-        lane_change_wp = next_wp;
-        return true;
+        if (slowest > slowest_so_far) {
+            target_lane = checkLane;
+            lane_change_wp = next_wp;
+        }
+        return slowest;
     }
 
 private:
 
     bool adjustRefVelIfShouldChangeLanes(const vector<Car> &cars) {
-        double closestDist = 100000;
+        double closest = numeric_limits<double>::max();
         bool change_lanes = false;
         for (const Car &car : cars) {
             if (car.lane != lane) continue;
 
-            double dist = distance(car);
-            if (dist > 0 && dist < 30 && dist < closestDist) {
-                closestDist = dist;
-                // TODO only if can't change lanes?
-                if (dist < 20) {
+            double distance = distance(car);
+            if (distance > 0 && distance < 30 && distance < closest) {
+                closest = distance;
+                if (distance < 20) {
                     ref_vel = car.speed * 2.237;
                 }
                 change_lanes = true;
             }
         }
-        cout << s << " " << d << " " << lane << " | " << closestDist << endl;
         return change_lanes;
     }
+
 };
 
