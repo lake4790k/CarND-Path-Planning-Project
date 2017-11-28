@@ -35,7 +35,7 @@ public:
     }
 
 protected:
-    double distance(const Car &otherCar) {
+    double distanceTo(const Car &otherCar) {
         return otherCar.s - s;
     }
 
@@ -103,7 +103,7 @@ public:
         double slowest = numeric_limits<double>::max();
         for (const Car &car : cars) {
             if (car.lane == checkLane) {
-                double distance = distance(car);
+                double distance = distanceTo(car);
                 bool notSafe = distance > -10 && distance < 20;
                 if (notSafe) return 0;
 
@@ -126,7 +126,7 @@ private:
         for (const Car &car : cars) {
             if (car.lane != lane) continue;
 
-            double distance = distance(car);
+            double distance = distanceTo(car);
             if (distance > 0 && distance < 30 && distance < closest) {
                 closest = distance;
                 if (distance < 20) {
